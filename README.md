@@ -1,7 +1,7 @@
 openvpn_server
 =========
 
-Install and configure OBFS4 ansible role<br>
+Install and configure OpenVPN Server ansible role<br>
 Available for Ubuntu 22.04 LTS<br>
 
     openvpn_server
