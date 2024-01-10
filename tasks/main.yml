@@ -1,0 +1,91 @@
+---
+# tasks file for openvpn_server
+
+- name: OpenVPN Server | Create tls-crypt key
+  ansible.builtin.shell: openvpn --genkey --secret ta.key
+  args:
+    chdir: "{{ openvpn_server.local_easy_rsa_path }}"
+    creates: "{{ openvpn_server.local_easy_rsa_path }}/ta.key"
+
+- name: OpenVPN Server | Copy tls-crypt key to config path
+  ansible.builtin.shell: "cp ta.key {{ openvpn_server.config_path }}"
+  args:
+    chdir: "{{ openvpn_server.local_easy_rsa_path }}"
+  become: true
+
+- name: OpenVPN Server | Copy OpenVPN Server config file
+  ansible.builtin.template:
+    src: server.conf.j2
+    dest: "{{ openvpn_server.config_path }}/server.conf"
+    owner: root
+    mode: 0644
+  become: true
+
+- name: OpenVPN Server | Enable ipv4 forwarding
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+  become: true
+
+- name: OpenVPN Server | Copy before.rules
+  ansible.builtin.template:
+    src: before.rules.j2
+    dest: /etc/ufw/before.rules
+    owner: root
+    mode: 0640
+  become: true
+
+- name: OpenVPN Server | Copy default ufw rules
+  ansible.builtin.template:
+    src: ufw.j2
+    dest: /etc/default/ufw
+    owner: root
+    mode: 0640
+  become: true
+
+- name: OpenVPN Server | Allow OpenVPN port
+  ansible.builtin.shell: "ufw allow {{ openvpn_server.port }}/{{ openvpn_server.proto }}"
+  become: true
+
+- name: OpenVPN Server | Allow ssh port
+  ansible.builtin.shell: "ufw allow 22/tcp"
+  become: true
+
+- name: OpenVPN Server | Reload ufw
+  ansible.builtin.shell: ufw reload
+  become: true
+
+- name: OpenVPN Server | Enable OpenVPN Server service
+  ansible.builtin.systemd:
+    name: openvpn-server@server.service
+    enabled: true
+    force: true
+  become: true
+
+- name: OpenVPN Server | Start OpenVPN Server service
+  ansible.builtin.systemd:
+    name: openvpn-server@server.service
+    state: started
+  become: true
+
+- name: OpenVPN Server | Create client-configs directory
+  ansible.builtin.file:
+    path: "~/client-configs/{{ item }}"
+    state: directory
+    recurse: true
+  loop:
+    - keys
+    - files
+
+- name: OpenVPN Server | Copy client base config
+  ansible.builtin.template:
+    src: client.conf.j2
+    dest: ~/client-configs/base.conf
+    owner: chelalex
+    mode: 0644
+
+- name: OpenVPN Server | Copy shell script for client cert generation
+  ansible.builtin.copy:
+    src: make_config.sh
+    dest: ~/client-configs/make_config.sh
+

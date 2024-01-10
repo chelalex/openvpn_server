@@ -1,0 +1,11 @@
+---
+# vars file for openvpn_server
+openvpn_server:
+  local_address: ;local a.b.c.d 
+  local_easy_rsa_path: /home/chelalex/easy-rsa
+  config_path: /etc/openvpn/server/
+  dh_param: none
+  port: 1194
+  proto: udp
+  cipher_mode: AES-256-GCM
+
